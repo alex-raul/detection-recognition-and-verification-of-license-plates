@@ -177,7 +177,7 @@ inception_model2.keras
 *.h5
 *.keras
 
-# JSON data files (IGNORAR - contiene datos específicos)
+
 breeds_info.json
 
 # Virtual environment (SIEMPRE IGNORAR)
@@ -240,3 +240,7 @@ yarn-error.log
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+
+django.log
+gcloud-license.json
