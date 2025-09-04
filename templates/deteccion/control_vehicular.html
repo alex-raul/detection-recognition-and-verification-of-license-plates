@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Vehicular - Sistema de Detección</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #06b6d4;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary-color) !important;
+        }
+        
+        .main-container {
+            padding: 2rem 0;
+            min-height: calc(100vh - 80px);
+        }
+        
+        .control-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .control-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            border: none;
+        }
+        
+        .card-header-custom h5 {
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .detection-area {
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border: 3px dashed #cbd5e1;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .detection-area.active {
+            border-color: var(--success-color);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .detection-area.processing {
+            border-color: var(--warning-color);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            display: none;
+        }
+        
+        #canvas {
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        
+        .btn-custom {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-custom:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-custom:hover:before {
+            left: 100%;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+        
+        .btn-success-custom {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+        }
+        
+        .btn-warning-custom {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            color: white;
+        }
+        
+        .btn-danger-custom {
+            background: linear-gradient(135deg, var(--danger-color), #dc2626);
+            color: white;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .detection-result {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .plate-detection {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .plate-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: var(--dark-color);
+        }
+        
+        .confidence-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .history-sidebar {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .history-item:hover {
+            background: #f8fafc;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-plate {
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-color);
+        }
+        
+        .history-time {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        
+        .history-method {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            background: #e2e8f0;
+            color: #475569;
+        }
+        
+        .stats-row {
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-top: 4px solid var(--primary-color);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+        }
+        
+        .spinner-border-custom {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.25rem;
+            border-color: var(--primary-color);
+            border-right-color: transparent;
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        .progress-custom {
+            height: 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-bar-custom {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-custom {
+                width: 100%;
+            }
+            
+            .history-sidebar {
+                margin-top: 2rem;
+                max-height: 50vh;
+            }
+        }
+        
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .detection-count {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+        
+        .count-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .count-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Estilos para edición de placas */
+        .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 1060;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .edit-modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .edit-modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px 15px 0 0;
+            position: relative;
+        }
+
+        .edit-modal-header h5 {
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .edit-modal-body {
+            padding: 2rem;
+        }
+
+        .edit-modal-footer {
+            padding: 1rem 2rem 2rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .plate-preview {
+            background: rgba(79, 70, 229, 0.1);
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .plate-preview-text {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-color);
+            letter-spacing: 2px;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .edit-suggestions {
+            margin-top: 1rem;
+        }
+
+        .suggestion-chip {
+            display: inline-block;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-chip:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .edit-history-item {
+            border-left: 4px solid var(--warning-color);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .edit-btn {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .history-item:hover .edit-btn {
+            opacity: 1;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'deteccion:index' %}">
+                <i class="fas fa-car me-2"></i>
+                Control Vehicular
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-calendar-day me-1"></i>
+                    <span id="currentDate"></span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <!-- Main Container -->
+    <div class="container main-container" style="margin-top: 80px;">
+        <!-- Estadísticas -->
+        <div class="row stats-row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="todayCount">{{ today_count }}</div>
+                    <div class="stat-label">Hoy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCount">{{ total_count }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="sessionCount">0</div>
+                    <div class="stat-label">Esta Sesión</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="accuracyRate">95%</div>
+                    <div class="stat-label">Precisión</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Panel Principal de Detección -->
+            <div class="col-lg-8">
+                <div class="control-card">
+                    <div class="card-header-custom">
+                        <h5>
+                            <i class="fas fa-search"></i>
+                            Sistema de Detección de Placas
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Área de Detección -->
+                        <div class="detection-area" id="detectionArea">
+                            <div id="cameraContainer" style="display: none; width: 100%; height: 100%;">
+                                <video id="video" autoplay muted playsinline></video>
+                                <canvas id="overlayCanvas" class="detection-overlay"></canvas>
+                            </div>
+                            
+                            <div id="uploadContainer" class="text-center">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                                <h4 class="text-muted">Selecciona una opción para comenzar</h4>
+                                <p class="text-muted">Usa la cámara web, sube una imagen o video</p>
+                            </div>
+                            
+                            <div id="resultContainer" style="display: none;">
+                                <img id="resultImage" class="img-fluid rounded" style="max-height: 100%; width: auto;">
+                            </div>
+                            
+                            <div class="loading-spinner" id="loadingSpinner">
+                                <div class="spinner-border spinner-border-custom" role="status">
+                                    <span class="visually-hidden">Procesando...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Controles -->
+                        <div class="control-buttons">
+                            <button class="btn btn-primary-custom btn-custom" id="startCameraBtn">
+                                <i class="fas fa-video me-2"></i>
+                                Iniciar Cámara
+                            </button>
+                            
+                            <button class="btn btn-success-custom btn-custom" id="captureBtn" style="display: none;">
+                                <i class="fas fa-camera me-2"></i>
+                                Capturar Foto
+                            </button>
+                            
+                            <div class="file-input-wrapper">
+                                <input type="file" id="fileInput" accept="image/*,video/*" multiple style="display: none;">
+                                <button class="btn btn-warning-custom btn-custom" id="uploadBtn">
+                                    <i class="fas fa-upload me-2"></i>
+                                    Subir Archivo
+                                </button>
+                            </div>
+                            
+                            <button class="btn btn-danger-custom btn-custom" id="stopCameraBtn" style="display: none;">
+                                <i class="fas fa-stop me-2"></i>
+                                Detener Cámara
+                            </button>
+                        </div>
+
+                        <!-- Progreso de Procesamiento -->
+                        <div class="progress-custom mt-3" id="progressBar" style="display: none;">
+                            <div class="progress-bar-custom" style="width: 0%"></div>
+                        </div>
+
+                        <!-- Resultados de Detección -->
+                        <div id="detectionResults"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar de Historial -->
+            <div class="col-lg-4">
+                <div class="history-sidebar">
+                    <div class="card-header-custom">
+                        <h5>
+                            <i class="fas fa-history"></i>
+                            Historial de Detecciones
+                        </h5>
+                    </div>
+                    <div class="p-3">
+                        <!-- Controles de Historial -->
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchHistory" placeholder="Buscar placa...">
+                                <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-3">
+                            <button class="btn btn-sm btn-outline-primary" id="refreshHistoryBtn">
+                                <i class="fas fa-sync me-1"></i>
+                                Actualizar
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" id="clearHistoryBtn">
+                                <i class="fas fa-trash me-1"></i>
+                                Limpiar
+                            </button>
+                        </div>
+
+                        <!-- Lista de Historial -->
+                        <div id="historyList">
+                            <!-- Las detecciones se cargarán aquí dinámicamente -->
+                        </div>
+                        
+                        <!-- Paginación -->
+                        <div class="text-center mt-3">
+                            <button class="btn btn-sm btn-outline-secondary" id="loadMoreBtn" style="display: none;">
+                                <i class="fas fa-chevron-down me-1"></i>
+                                Cargar Más
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar placas -->
+    <div id="editPlateModal" class="edit-modal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h5>
+                    <i class="fas fa-edit"></i>
+                    Editar Placa Detectada
+                </h5>
+                <button class="close-btn" onclick="closeEditModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="plate-preview">
+                    <div class="plate-preview-text" id="platePreview"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Texto de la Placa:</label>
+                    <input type="text" class="edit-input" id="plateEditInput" placeholder="Ingresa la placa correcta">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Confianza:</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="range" class="form-range" id="confidenceSlider" min="0" max="100" value="90">
+                        <span class="badge bg-primary" id="confidenceValue">90%</span>
+                    </div>
+                </div>
+                
+                <div class="edit-suggestions">
+                    <small class="text-muted">Sugerencias comunes:</small>
+                    <div id="suggestions">
+                        <!-- Las sugerencias se generarán dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="savePlateEdit()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let video = null;
+        let canvas = null;
+        let ctx = null;
+        let stream = null;
+        let isDetecting = false;
+        let sessionDetections = 0;
+        let detectionInterval = null;
+        let currentPage = 1;
+
+        // Variables para el modal de edición
+        let currentEditingId = null;
+        let originalPlateText = '';
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            setupElements();
+            setupEventListeners();
+            updateCurrentDate();
+            loadDetectionHistory();
+            
+            // Actualizar estadísticas cada 30 segundos
+            setInterval(updateStats, 30000);
+        }
+
+        function setupElements() {
+            video = document.getElementById('video');
+            canvas = document.getElementById('overlayCanvas');
+            if (canvas) {
+                ctx = canvas.getContext('2d');
+            }
+        }
+
+        // Event listeners mejorados
+        function setupEventListeners() {
+            // Botones principales
+            document.getElementById('startCameraBtn').addEventListener('click', startCamera);
+            document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
+            document.getElementById('captureBtn').addEventListener('click', capturePhoto);
+            
+            // Input de archivos
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (uploadBtn && fileInput) {
+                uploadBtn.addEventListener('click', function() {
+                    fileInput.click();
+                });
+                fileInput.addEventListener('change', handleFileUpload);
+            }
+            
+            // Historial - con manejo de errores
+            const refreshBtn = document.getElementById('refreshHistoryBtn');
+            const clearBtn = document.getElementById('clearHistoryBtn');
+            const searchBtn = document.getElementById('searchBtn');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const searchInput = document.getElementById('searchHistory');
+            
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    console.log('Actualizando historial...');
+                    loadDetectionHistory(1);
+                });
+            }
+            
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    console.log('Iniciando limpieza de historial...');
+                    clearAllHistory();
+                });
+            }
+            
+            if (searchBtn) {
+                searchBtn.addEventListener('click', searchHistory);
+            }
+            
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', loadMoreHistory);
+            }
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce(searchHistory, 500));
+            }
+
+            // Event listeners para el modal de edición
+            setupEditModalListeners();
+        }
+
+        // Event listeners para el modal de edición
+        function setupEditModalListeners() {
+            // Actualizar preview mientras se escribe
+            document.getElementById('plateEditInput').addEventListener('input', function() {
+                const value = this.value.toUpperCase();
+                this.value = value;
+                document.getElementById('platePreview').textContent = value || 'PREVIEW';
+            });
+            
+            // Actualizar valor de confianza
+            document.getElementById('confidenceSlider').addEventListener('input', function() {
+                document.getElementById('confidenceValue').textContent = this.value + '%';
+            });
+            
+            // Cerrar modal con Escape
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && document.getElementById('editPlateModal').style.display === 'block') {
+                    closeEditModal();
+                }
+            });
+            
+            // Cerrar modal al hacer clic fuera
+            document.getElementById('editPlateModal').addEventListener('click', function(event) {
+                if (event.target === this) {
+                    closeEditModal();
+                }
+            });
+            
+            // Guardar con Enter
+            document.getElementById('plateEditInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    savePlateEdit();
+                }
+            });
+        }
+
+        // Funcionalidad de Cámara
+        async function startCamera() {
+            try {
+                showToast('Iniciando cámara...', 'info');
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    } 
+                });
+                
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    // Configurar canvas overlay
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    // Mostrar contenedor de cámara
+                    document.getElementById('uploadContainer').style.display = 'none';
+                    document.getElementById('resultContainer').style.display = 'none';
+                    document.getElementById('cameraContainer').style.display = 'block';
+                    
+                    // Actualizar botones
+                    document.getElementById('startCameraBtn').style.display = 'none';
+                    document.getElementById('captureBtn').style.display = 'inline-block';
+                    document.getElementById('stopCameraBtn').style.display = 'inline-block';
+                    
+                    // Marcar área como activa
+                    document.getElementById('detectionArea').classList.add('active');
+                    
+                    showToast('Cámara iniciada correctamente', 'success');
+                    
+                    // Iniciar detección automática cada 3 segundos
+                    startAutoDetection();
+                };
+                
+            } catch (error) {
+                console.error('Error accediendo a la cámara:', error);
+                showToast('Error al acceder a la cámara: ' + error.message, 'error');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            stopAutoDetection();
+            
+            // Ocultar contenedor de cámara
+            document.getElementById('cameraContainer').style.display = 'none';
+            document.getElementById('uploadContainer').style.display = 'block';
+            
+            // Restaurar botones
+            document.getElementById('startCameraBtn').style.display = 'inline-block';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('stopCameraBtn').style.display = 'none';
+            
+            // Remover clase activa
+            document.getElementById('detectionArea').classList.remove('active');
+            
+            showToast('Cámara detenida', 'info');
+        }
+
+        function startAutoDetection() {
+            if (detectionInterval) clearInterval(detectionInterval);
+            
+            detectionInterval = setInterval(() => {
+                if (!isDetecting && video && video.readyState === 4) {
+                    detectFromCamera(false); // false = no mostrar toast para detección automática
+                }
+            }, 3000);
+        }
+
+        function stopAutoDetection() {
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+        }
+
+        async function capturePhoto() {
+            if (!video || video.readyState !== 4) {
+                showToast('La cámara no está lista', 'error');
+                return;
+            }
+            
+            await detectFromCamera(true); // true = mostrar toast para captura manual
+        }
+
+        async function detectFromCamera(isManualCapture = false) {
+            if (isDetecting) return;
+            
+            isDetecting = true;
+            
+            try {
+                if (isManualCapture) {
+                    showLoading(true);
+                    showToast('Capturando y procesando imagen...', 'info');
+                }
+                
+                // Crear canvas temporal para capturar frame
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = video.videoWidth;
+                tempCanvas.height = video.videoHeight;
+                
+                // Dibujar frame actual
+                tempCtx.drawImage(video, 0, 0);
+                
+                // Convertir a blob
+                const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/jpeg', 0.8));
+                
+                // Convertir a base64
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64 = reader.result;
+                    await sendCaptureToServer(base64, isManualCapture);
+                };
+                reader.readAsDataURL(blob);
+                
+            } catch (error) {
+                console.error('Error capturando imagen:', error);
+                if (isManualCapture) {
+                    showToast('Error capturando imagen: ' + error.message, 'error');
+                }
+            } finally {
+                isDetecting = false;
+                if (isManualCapture) {
+                    showLoading(false);
+                }
+            }
+        }
+
+        async function sendCaptureToServer(base64Image, showFeedback = true) {
+            try {
+                const response = await fetch('{% url "deteccion:capture_photo" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: base64Image
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    if (showFeedback) {
+                        showToast('Error: ' + data.error, 'error');
+                    }
+                    return;
+                }
+                
+                if (data.placas && data.placas.length > 0) {
+                    displayDetectionResults(data);
+                    drawDetectionBoxes(data.placas);
+                    updateSessionStats();
+                    loadDetectionHistory(1); // Actualizar historial
+                    
+                    if (showFeedback) {
+                        showToast(`¡${data.placas.length} placa(s) detectada(s)!`, 'success');
+                    }
+                } else {
+                    if (showFeedback) {
+                        showToast('No se detectaron placas en la imagen', 'warning');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error enviando captura:', error);
+                if (showFeedback) {
+                    showToast('Error procesando imagen', 'error');
+                }
+            }
+        }
+
+        function drawDetectionBoxes(placas) {
+            if (!ctx || !canvas) return;
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar rectángulos para cada placa detectada
+            placas.forEach(placa => {
+                const coords = placa.coordenadas;
+                if (coords && coords.length === 4) {
+                    const [x1, y1, x2, y2] = coords;
+                    
+                    // Escalar coordenadas al tamaño del canvas
+                    const scaleX = canvas.width / video.videoWidth;
+                    const scaleY = canvas.height / video.videoHeight;
+                    
+                    const scaledX1 = x1 * scaleX;
+                    const scaledY1 = y1 * scaleY;
+                    const scaledX2 = x2 * scaleX;
+                    const scaledY2 = y2 * scaleY;
+                    
+                    // Configurar estilo
+                    ctx.strokeStyle = parseFloat(placa.confianza) > 0.7 ? '#10b981' : '#f59e0b';
+                    ctx.lineWidth = 3;
+                    ctx.fillStyle = parseFloat(placa.confianza) > 0.7 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)';
+                    
+                    // Dibujar rectángulo
+                    ctx.fillRect(scaledX1, scaledY1, scaledX2 - scaledX1, scaledY2 - scaledY1);
+                    ctx.strokeRect(scaledX1, scaledY1, scaledX2 - scaledX1, scaledY2 - scaledY1);
+                    
+                    // Dibujar texto
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.font = '16px Arial';
+                    ctx.fillText(placa.texto, scaledX1, scaledY1 - 5);
+                }
+            });
+        }
+
+        // Funcionalidad de Subida de Archivos
+        async function handleFileUpload(event) {
+            const files = event.target.files;
+            console.log('Archivos seleccionados:', files); // Para debug
+            
+            if (!files || files.length === 0) {
+                console.log('No hay archivos seleccionados');
+                return;
+            }
+            
+            console.log(`Procesando ${files.length} archivo(s)`);
+            
+            showLoading(true);
+            document.getElementById('detectionArea').classList.add('processing');
+            
+            // Validar tipos de archivo
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'video/mp4', 'video/avi', 'video/mov'];
+            const invalidFiles = Array.from(files).filter(file => !validTypes.includes(file.type));
+            
+            if (invalidFiles.length > 0) {
+                showToast('Algunos archivos no son válidos. Solo se permiten imágenes (JPG, PNG, BMP) y videos (MP4, AVI, MOV)', 'error');
+                showLoading(false);
+                document.getElementById('detectionArea').classList.remove('processing');
+                return;
+            }
+            
+            const formData = new FormData();
+            
+            // Agregar todos los archivos al FormData
+            for (let i = 0; i < files.length; i++) {
+                formData.append('file', files[i]);
+                console.log(`Archivo ${i + 1}: ${files[i].name} (${files[i].type})`);
+            }
+            
+            try {
+                showToast(`Procesando ${files.length} archivo(s)...`, 'info');
+                
+                // Obtener el CSRF token si es necesario
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                
+                const fetchOptions = {
+                    method: 'POST',
+                    body: formData
+                };
+                
+                // Agregar CSRF token si existe
+                if (csrfToken) {
+                    fetchOptions.headers = {
+                        'X-CSRFToken': csrfToken
+                    };
+                }
+                
+                const response = await fetch('{% url "deteccion:upload_file" %}', fetchOptions);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Respuesta del servidor:', data);
+                
+                if (data.error) {
+                    showToast('Error: ' + data.error, 'error');
+                    return;
+                }
+                
+                // Mostrar resultados
+                displayDetectionResults(data);
+                
+                // Mostrar imagen resultado si existe
+                if (data.imagen_resultado) {
+                    showResultImage(data.imagen_resultado);
+                }
+                
+                updateSessionStats();
+                loadDetectionHistory(1);
+                
+                const plateCount = data.placas ? data.placas.length : 0;
+                showToast(`Procesamiento completado. ${plateCount} placa(s) detectada(s)`, 'success');
+                
+            } catch (error) {
+                console.error('Error subiendo archivo:', error);
+                showToast('Error procesando archivo: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+                document.getElementById('detectionArea').classList.remove('processing');
+                // Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+                event.target.value = '';
+            }
+        }
+
+        function showResultImage(imagePath) {
+            const resultContainer = document.getElementById('resultContainer');
+            const resultImage = document.getElementById('resultImage');
+            
+            // Ocultar otros contenedores
+            document.getElementById('uploadContainer').style.display = 'none';
+            document.getElementById('cameraContainer').style.display = 'none';
+            
+            // Mostrar imagen resultado
+            resultImage.src = imagePath;
+            resultContainer.style.display = 'block';
+        }
+
+        // Mostrar Resultados de Detección
+        function displayDetectionResults(data) {
+            const resultsContainer = document.getElementById('detectionResults');
+            
+            if (!data.placas || data.placas.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="detection-result">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                            <h5>No se detectaron placas</h5>
+                            <p class="text-muted">Intenta con una imagen más clara o con mejor iluminación.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let resultsHTML = `
+                <div class="detection-result">
+                    <h5 class="mb-3">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Resultados de Detección
+                    </h5>
+                    <div class="detection-stats">
+                        <div class="detection-count">
+                            <div class="count-number">${data.placas.length}</div>
+                            <div class="count-label">Placas Detectadas</div>
+                        </div>
+                        <div class="detection-count">
+                            <div class="count-number">${Math.round(data.placas.reduce((sum, p) => sum + parseFloat(p.confianza || 0), 0) / data.placas.length * 100)}%</div>
+                            <div class="count-label">Confianza Promedio</div>
+                        </div>
+                    </div>
+            `;
+            
+            data.placas.forEach((placa, index) => {
+                const confidence = parseFloat(placa.confianza || 0);
+                const confidenceClass = confidence >= 0.8 ? 'success' : confidence >= 0.6 ? 'warning' : 'danger';
+                
+                resultsHTML += `
+                    <div class="plate-detection">
+                        <div>
+                            <div class="plate-number">${placa.texto}</div>
+                            <small class="text-muted">
+                                <i class="fas fa-robot me-1"></i>
+                                ${placa.metodo || 'Método desconocido'}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="confidence-badge bg-${confidenceClass} text-white">
+                                ${Math.round(confidence * 100)}%
+                            </span>
+                            <div class="mt-1">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    ${new Date().toLocaleTimeString()}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsHTML += '</div>';
+            resultsContainer.innerHTML = resultsHTML;
+        }
+
+        // Funcionalidad de Historial
+        async function loadDetectionHistory(page = 1, search = '') {
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    search: search
+                });
+                
+                const response = await fetch(`{% url "deteccion:get_detections" %}?${params}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showToast('Error cargando historial: ' + data.error, 'error');
+                    return;
+                }
+                
+                const historyList = document.getElementById('historyList');
+                
+                if (page === 1) {
+                    historyList.innerHTML = '';
+                    currentPage = 1;
+                }
+                
+                if (data.detections && data.detections.length > 0) {
+                    data.detections.forEach(detection => {
+                        const historyItem = createHistoryItem(detection);
+                        historyList.appendChild(historyItem);
+                    });
+                    
+                    // Mostrar/ocultar botón "Cargar más"
+                    const loadMoreBtn = document.getElementById('loadMoreBtn');
+                    if (data.has_next) {
+                        loadMoreBtn.style.display = 'block';
+                        currentPage = page;
+                    } else {
+                        loadMoreBtn.style.display = 'none';
+                    }
+                } else if (page === 1) {
+                    historyList.innerHTML = `
+                        <div class="text-center p-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No hay detecciones registradas</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error cargando historial:', error);
+                showToast('Error cargando historial', 'error');
+            }
+        }
+
+        function viewDetectionDetails(detectionId) {
+            console.log('=== DEBUG INFO ===');
+            console.log('Detection ID:', detectionId);
+            console.log('URL que se va a usar:', `/detection/${detectionId}/details/`);
+            
+            // Verificar que el ID no sea undefined o null
+            if (!detectionId || detectionId === 'undefined') {
+                console.error('ERROR: Detection ID es inválido:', detectionId);
+                alert('Error: ID de detección inválido');
+                return;
+            }
+            
+            // Hacer la redirección
+            const url = `/detection/${detectionId}/details/`;
+            console.log('Redirigiendo a:', url);
+            window.location.href = url;
+        }
+        // Función para crear elementos del historial con botón de editar
+        function createHistoryItem(detection) {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.dataset.detectionId = detection.id;
+            
+            const confidence = parseFloat(detection.confidence || detection.confianza || 0);
+            const confidenceClass = confidence >= 0.8 ? 'success' : confidence >= 0.6 ? 'warning' : 'danger';
+            
+            // Verificar si la placa fue editada
+            const isEdited = detection.is_edited || detection.editado || false;
+            const editedClass = isEdited ? 'edit-history-item' : '';
+            
+            item.className += ' ' + editedClass;
+            
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="history-plate">
+                            ${detection.plate_number || detection.placa || 'N/A'}
+                            ${isEdited ? '<i class="fas fa-edit text-warning ms-1" title="Placa editada"></i>' : ''}
+                        </div>
+                        <div class="history-time">
+                            <i class="fas fa-clock me-1"></i>
+                            ${detection.formatted_date || detection.fecha || 'Fecha no disponible'}
+                        </div>
+                        <div class="mt-1">
+                            <span class="history-method">${detection.detection_method || detection.metodo || 'Método desconocido'}</span>
+                            <span class="badge bg-${confidenceClass} ms-1">${Math.round(confidence * 100)}%</span>
+                            ${isEdited ? '<span class="badge bg-warning ms-1"><i class="fas fa-edit"></i> Editada</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-${getTypeIcon(detection.detection_type || detection.tipo)} text-muted"></i>
+                        <button class="btn btn-sm btn-outline-primary ms-1 edit-btn" onclick="openEditModal(${detection.id}, '${(detection.plate_number || detection.placa || '').replace(/'/g, "\\'")}', ${confidence})" title="Editar placa">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info ms-1" onclick="viewDetectionDetails(${detection.id})" title="Ver más información">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteDetection(${detection.id})" title="Eliminar detección">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <button class="btn btn-info btn-custom" onclick="testAAPScraper()">
+                            <i class="fas fa-flask me-2"></i>
+                            Probar AAP Scraper
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return item;
+        }
+
+        function getTypeIcon(type) {
+            const icons = {
+                'manual': 'hand-pointer',
+                'camera': 'camera',
+                'upload': 'upload',
+                'video': 'video',
+                'realtime': 'broadcast-tower'
+            };
+            return icons[type] || 'question';
+        }
+
+        function loadMoreHistory() {
+            const search = document.getElementById('searchHistory').value;
+            loadDetectionHistory(currentPage + 1, search);
+        }
+
+        function searchHistory() {
+            const search = document.getElementById('searchHistory').value;
+            loadDetectionHistory(1, search);
+        }
+
+        // Función para obtener el token CSRF
+        function getCSRFToken() {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            if (!csrfToken) {
+                // Alternativa: obtener desde las cookies
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'csrftoken') {
+                        return value;
+                    }
+                }
+            }
+            return csrfToken;
+        }
+
+        async function deleteDetection(detectionId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta detección?')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const csrfToken = getCSRFToken();
+                console.log('Eliminando detección ID:', detectionId);
+                console.log('Token CSRF:', csrfToken);
+                
+                // Usar la URL correcta que coincide con tu urls.py
+                const url = `/deteccion/api/detections/${detectionId}/delete/`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        'action': 'delete_single',
+                        'detection_id': detectionId
+                    })
+                });
+                
+                console.log('Respuesta del servidor:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Datos de respuesta:', data);
+                
+                if (data.success || data.status === 'success') {
+                    showToast('Detección eliminada correctamente', 'success');
+                    
+                    // Remover el elemento de la interfaz inmediatamente
+                    removeDetectionFromUI(detectionId);
+                    
+                    // Recargar historial para asegurar sincronización
+                    const search = document.getElementById('searchHistory').value;
+                    setTimeout(() => {
+                        loadDetectionHistory(1, search);
+                        updateStats();
+                    }, 500);
+                    
+                } else {
+                    showToast('Error eliminando detección: ' + (data.message || data.error || 'Error desconocido'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error eliminando detección:', error);
+                
+                if (error.message.includes('405')) {
+                    showToast('Método no permitido. Verifica la configuración del servidor.', 'error');
+                } else if (error.message.includes('404')) {
+                    showToast('Detección no encontrada. Puede que ya haya sido eliminada.', 'warning');
+                    removeDetectionFromUI(detectionId);
+                } else if (error.message.includes('403')) {
+                    showToast('No tienes permisos para eliminar esta detección.', 'error');
+                } else if (error.message.includes('500')) {
+                    showToast('Error interno del servidor. Revisa los logs del servidor.', 'error');
+                } else {
+                    showToast('Error de conexión: ' + error.message, 'error');
+                }
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Función para remover elemento de la interfaz
+        function removeDetectionFromUI(detectionId) {
+            const historyItems = document.querySelectorAll('.history-item');
+            historyItems.forEach(item => {
+                const deleteBtn = item.querySelector(`button[onclick="deleteDetection(${detectionId})"]`);
+                if (deleteBtn) {
+                    item.remove();
+                }
+            });
+        }
+
+        async function clearAllHistory() {
+            if (!confirm('¿Estás seguro de que quieres eliminar TODAS las detecciones? Esta acción no se puede deshacer.')) {
+                return;
+            }
+            
+            // Confirmación adicional
+            if (!confirm('ÚLTIMA ADVERTENCIA: Se eliminarán TODAS las detecciones permanentemente. ¿Continuar?')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                showToast('Eliminando todas las detecciones...', 'info');
+                
+                const csrfToken = getCSRFToken();
+                console.log('Limpiando todo el historial...');
+                
+                const response = await fetch('{% url "deteccion:clear_detections" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        'action': 'clear_all'
+                    })
+                });
+                
+                console.log('Respuesta del servidor:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Datos de respuesta:', data);
+                
+                if (data.success || data.status === 'success') {
+                    const deletedCount = data.deleted_count || data.count || 0;
+                    showToast(`${deletedCount} detecciones eliminadas correctamente`, 'success');
+                    
+                    // Limpiar la interfaz
+                    document.getElementById('historyList').innerHTML = `
+                        <div class="text-center p-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No hay detecciones registradas</p>
+                        </div>
+                    `;
+                    
+                    // Ocultar botón "Cargar más"
+                    document.getElementById('loadMoreBtn').style.display = 'none';
+                    
+                    // Actualizar estadísticas
+                    updateStats();
+                    
+                    // Reiniciar contadores de sesión
+                    sessionDetections = 0;
+                    document.getElementById('sessionCount').textContent = '0';
+                    
+                } else {
+                    showToast('Error limpiando historial: ' + (data.message || data.error || 'Error desconocido'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error limpiando historial:', error);
+                showToast('Error de conexión: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ========== FUNCIONES DE EDICIÓN DE PLACAS ==========
+
+        // Función para abrir el modal de edición
+        function openEditModal(detectionId, plateText, confidence) {
+            currentEditingId = detectionId;
+            originalPlateText = plateText;
+            
+            // Configurar el modal
+            document.getElementById('platePreview').textContent = plateText;
+            document.getElementById('plateEditInput').value = plateText;
+            document.getElementById('confidenceSlider').value = Math.round(confidence * 100);
+            document.getElementById('confidenceValue').textContent = Math.round(confidence * 100) + '%';
+            
+            // Generar sugerencias
+            generateSuggestions(plateText);
+            
+            // Mostrar modal
+            document.getElementById('editPlateModal').style.display = 'block';
+            
+            // Enfocar el input
+            setTimeout(() => {
+                document.getElementById('plateEditInput').focus();
+                document.getElementById('plateEditInput').select();
+            }, 100);
+        }
+
+        // Función para cerrar el modal
+        function closeEditModal() {
+            document.getElementById('editPlateModal').style.display = 'none';
+            currentEditingId = null;
+            originalPlateText = '';
+        }
+
+        // Función para generar sugerencias de corrección
+        function generateSuggestions(plateText) {
+            const suggestionsContainer = document.getElementById('suggestions');
+            suggestionsContainer.innerHTML = '';
+            
+            // Sugerencias basadas en errores comunes de OCR
+            const commonErrors = {
+                '0': 'O',
+                'O': '0',
+                '1': 'I',
+                'I': '1',
+                '5': 'S',
+                'S': '5',
+                '8': 'B',
+                'B': '8',
+                '6': 'G',
+                'G': '6',
+                '2': 'Z',
+                'Z': '2'
+            };
+            
+            const suggestions = new Set();
+            
+            // Generar variaciones basadas en errores comunes
+            for (let i = 0; i < plateText.length; i++) {
+                const char = plateText[i];
+                if (commonErrors[char]) {
+                    const suggestion = plateText.substring(0, i) + commonErrors[char] + plateText.substring(i + 1);
+                    suggestions.add(suggestion);
+                }
+            }
+            
+            // Crear chips de sugerencias
+            suggestions.forEach(suggestion => {
+                const chip = document.createElement('span');
+                chip.className = 'suggestion-chip';
+                chip.textContent = suggestion;
+                chip.onclick = () => applySuggestion(suggestion);
+                suggestionsContainer.appendChild(chip);
+            });
+        }
+
+        // Función para aplicar una sugerencia
+        function applySuggestion(suggestion) {
+            document.getElementById('plateEditInput').value = suggestion;
+            document.getElementById('platePreview').textContent = suggestion;
+        }
+
+        // Función para guardar los cambios
+        async function savePlateEdit() {
+        const newPlateText = document.getElementById('plateEditInput').value.trim().toUpperCase();
+        const newConfidence = document.getElementById('confidenceSlider').value / 100;
+        
+        if (!newPlateText) {
+            showToast('Por favor ingresa un texto para la placa', 'error');
+            return;
+        }
+        
+        if (newPlateText === originalPlateText) {
+            showToast('No se realizaron cambios', 'info');
+            closeEditModal();
+            return;
+        }
+        
+        try {
+            showLoading(true);
+            
+            const csrfToken = getCSRFToken();
+            
+            // CAMBIO: URL relativa en lugar de absoluta
+            const response = await fetch(`{% url "deteccion:edit_detection" 0 %}`.replace('0', currentEditingId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    'plate_number': newPlateText,
+                    'confidence': newConfidence,
+                    'original_text': originalPlateText
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(`Placa actualizada: ${originalPlateText} → ${newPlateText}`, 'success');
+                closeEditModal();
+                
+                // Actualizar historial
+                const search = document.getElementById('searchHistory').value;
+                loadDetectionHistory(1, search);
+                
+                // Actualizar estadísticas
+                updateStats();
+            } else {
+                showToast('Error guardando cambios: ' + (data.message || 'Error desconocido'), 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error editando placa:', error);
+            showToast('Error de conexión: ' + error.message, 'error');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+        // Utilidades
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', options);
+        }
+
+        function updateSessionStats() {
+            sessionDetections++;
+            document.getElementById('sessionCount').textContent = sessionDetections;
+        }
+
+        function updateStats() {
+            // Aquí podrías hacer una llamada AJAX para obtener estadísticas actualizadas
+            // Por ahora, solo actualizamos la fecha
+            updateCurrentDate();
+        }
+
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            const progressBar = document.getElementById('progressBar');
+            
+            if (show) {
+                spinner.style.display = 'block';
+                progressBar.style.display = 'block';
+                // Simular progreso
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 30;
+                    if (progress > 90) progress = 90;
+                    progressBar.querySelector('.progress-bar-custom').style.width = progress + '%';
+                }, 200);
+                
+                progressBar.dataset.interval = interval;
+            } else {
+                spinner.style.display = 'none';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressBar.querySelector('.progress-bar-custom').style.width = '0%';
+                    if (progressBar.dataset.interval) {
+                        clearInterval(progressBar.dataset.interval);
+                    }
+                }, 500);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const bgClass = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-primary'
+            }[type] || 'bg-primary';
+            
+            const icon = {
+                'success': 'check-circle',
+                'error': 'exclamation-circle',
+                'warning': 'exclamation-triangle',
+                'info': 'info-circle'
+            }[type] || 'info-circle';
+            
+            const toast = document.createElement('div');
+            toast.className = `toast show ${bgClass} text-white`;
+            toast.id = toastId;
+            toast.innerHTML = `
+                <div class="toast-body">
+                    <i class="fas fa-${icon} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close btn-close-white float-end" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (document.getElementById(toastId)) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Actualizar fecha cada minuto
+        setInterval(updateCurrentDate, 60000);
+
+        
+    </script>
+</body>
+</html>

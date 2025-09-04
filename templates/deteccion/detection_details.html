@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Consultas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            padding: 1.5rem;
+        }
+        
+        .search-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-expired { background: #f8d7da; color: #721c24; }
+        .status-valid { background: #cce5ff; color: #004085; }
+        
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .data-row:last-child {
+            border-bottom: none;
+        }
+        
+        .data-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        
+        .data-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .icon-header {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 12px;
+        }
+        
+        .icon-multas { background: #dc3545; }
+        .icon-ordenes { background: #fd7e14; }
+        .icon-soat { background: #28a745; }
+        .icon-permiso { background: #007bff; }
+        .icon-vehiculo { background: #6f42c1; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="main-card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-search me-2"></i>
+                    Dashboard de Consultas
+                </h4>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="search-box">
+            <div class="row">
+                <div class="col-md-5">
+                    <input type="text" class="form-control" id="documento" placeholder="Número de documento" value="12345678">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" id="placa" placeholder="Placa del vehículo" value="ABC-123">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="buscar()">
+                        <i class="fas fa-search me-1"></i>
+                        Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="row">
+            <!-- Multas -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-header icon-multas">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">Multas de Tránsito</h5>
+                        </div>
+                        <span class="status-badge status-pending">2 Pendientes</span>
+                    </div>
+                    
+                    <div class="data-row">
+                        <span class="data-label">Papeleta:</span>
+                        <span class="data-value">MT-2024-001234</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Fecha:</span>
+                        <span class="data-value">15/06/2024</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Monto:</span>
+                        <span class="data-value">S/ 336.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Órdenes de Captura -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-header icon-ordenes">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">Órdenes de Captura</h5>
+                        </div>
+                        <span class="status-badge status-active">Sin registros</span>
+                    </div>
+                    
+                    <div class="text-center text-success py-3">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <p class="mb-0">No se encontraron órdenes de captura</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOAT -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-header icon-soat">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">SOAT</h5>
+                        </div>
+                        <span class="status-badge status-valid">Vigente</span>
+                    </div>
+                    
+                    <div class="data-row">
+                        <span class="data-label">Póliza:</span>
+                        <span class="data-value">SOAT-2024-789456</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Aseguradora:</span>
+                        <span class="data-value">Rímac Seguros</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Vigencia:</span>
+                        <span class="data-value">15/03/2026</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permiso Municipal -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-header icon-permiso">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">Permiso Municipal</h5>
+                        </div>
+                        <span class="status-badge status-expired">Vencido</span>
+                    </div>
+                    
+                    <div class="data-row">
+                        <span class="data-label">Número:</span>
+                        <span class="data-value">PM-2024-567890</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Municipalidad:</span>
+                        <span class="data-value">Lima Metropolitana</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Vigencia:</span>
+                        <span class="data-value">31/12/2024</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Características del Vehículo -->
+            <div class="col-md-12">
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-header icon-vehiculo">
+                            <i class="fas fa-car"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">Características del Vehículo</h5>
+                        </div>
+                        <span class="status-badge status-active">Verificado</span>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="data-row">
+                                <span class="data-label">Marca:</span>
+                                <span class="data-value">Toyota</span>
+                            </div>
+                            <div class="data-row">
+                                <span class="data-label">Modelo:</span>
+                                <span class="data-value">Corolla</span>
+                            </div>
+                            <div class="data-row">
+                                <span class="data-label">Año:</span>
+                                <span class="data-value">2020</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="data-row">
+                                <span class="data-label">Color:</span>
+                                <span class="data-value">Blanco</span>
+                            </div>
+                            <div class="data-row">
+                                <span class="data-label">Motor:</span>
+                                <span class="data-value">1.8L</span>
+                            </div>
+                            <div class="data-row">
+                                <span class="data-label">Propietario:</span>
+                                <span class="data-value">Juan Pérez García</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<button class="btn btn-primary btn-custom me-2" onclick="goBackToControl()">
+    <i class="fas fa-arrow-left me-2"></i>
+    Regresar al Sistema
+</button>
+        <!-- Footer -->
+        <div class="text-center mt-4 mb-3">
+            <small class="text-muted">
+                Última actualización: 15/07/2025 14:45 hrs
+            </small>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function buscar() {
+            const documento = document.getElementById('documento').value;
+            const placa = document.getElementById('placa').value;
+            
+            if (!documento && !placa) {
+                alert('Ingresa al menos un documento o placa');
+                return;
+            }
+            
+            // Simulación de búsqueda
+            alert('Buscando información...');
+        }
+    </script>
+</body>
+</html>

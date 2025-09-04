@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles de Detección - Control Vehicular</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #06b6d4;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .detail-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            border: none;
+        }
+        
+        .plate-display {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 15px;
+            margin: 1.5rem;
+            border: 3px solid var(--primary-color);
+        }
+        
+        .plate-number-large {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .search-section {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1.5rem;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .search-input {
+            font-size: 1.2rem;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .btn-search {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+        
+        .aap-results, .pit-results {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: block; /* Siempre visible */
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .data-row:last-child {
+            border-bottom: none;
+        }
+        
+        .data-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        
+        .data-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .btn-custom {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .aap-results, .pit-results {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: block; /* Siempre visible */
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+            <h5>Consultando AAP...</h5>
+            <p class="text-muted">Esto puede tomar unos minutos</p>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'deteccion:control_vehicular' %}">
+                <i class="fas fa-car me-2"></i>
+                Control Vehicular
+            </a>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'deteccion:control_vehicular' %}">Sistema</a>
+                    </li>
+                    <li class="breadcrumb-item active">Consulta Detallada</li>
+                </ol>
+            </nav>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Botón de Regreso -->
+        <div class="mb-3">
+            <a href="{% url 'deteccion:control_vehicular' %}" class="btn btn-outline-secondary btn-custom">
+                <i class="fas fa-arrow-left me-2"></i>
+                Volver al Sistema
+            </a>
+        </div>
+
+        <!-- Información de la Detección Original -->
+        <div class="detail-card">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Detección Original
+                </h4>
+            </div>
+            
+            <!-- Placa Detectada -->
+            <div class="plate-display">
+                <div class="plate-number-large">{{ detection.plate_number }}</div>
+                <div class="mt-2">
+                    <small class="text-light">
+                        <i class="fas fa-clock me-1"></i>
+                        Detectada: {{ detection.created_at|date:"d/m/Y H:i:s" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Búsqueda -->
+        <div class="detail-card">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-search me-2"></i>
+                    Consulta de Información Vehicular
+                </h4>
+            </div>
+            
+            <div class="search-section">
+                <div class="row align-items-end">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Placa a consultar:</label>
+                        <input type="text" class="form-control search-input" id="plateSearch" 
+                            value="{{ detection.plate_number }}" placeholder="Ingresa la placa">
+                    </div>
+                </div>
+
+                <!-- Botones separados -->
+                <div class="row mt-3 g-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-success w-100 py-3" onclick="searchAAPInfo()">
+                            <i class="fas fa-car me-2"></i>
+                            <strong>Consultar AAP</strong><br>
+                            <small>Datos del Vehículo</small>
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-warning w-100 py-3" onclick="searchPITInfo()">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Consultar PIT</strong><br>
+                            <small>Papeletas de Tránsito</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-danger w-100 py-3" onclick="searchSATInfo()">
+                            <i class="fas fa-ban me-2"></i>
+                            <strong>Consultar SAT</strong><br>
+                            <small>Órdenes de Captura</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-info w-100 py-3" onclick="searchAutorizacionInfo()">
+                            <i class="fas fa-id-card me-2"></i>
+                            <strong>Autorización</strong><br>
+                            <small>Circulación</small>
+                        </button>
+                    </div>
+                    <div class="col">
+                        <button class="btn btn-primary w-100 py-2" onclick="searchSOATInfo()">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            <strong>SOAT</strong><br>
+                            <small>Seguro</small>
+                        </button>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12 text-center">
+                            <button class="btn btn-secondary btn-custom" onclick="downloadPDF()" id="downloadBtn" style="display: none;">
+                                <i class="fas fa-download me-2"></i>
+                                Descargar Reporte PDF
+                            </button>
+                        </div>
+                    </div>
+            
+                </div>
+                <div class="row mt-3">
+                        <div class="col-12 text-center">
+                            <button class="btn btn-secondary btn-custom" onclick="downloadPDF()" id="downloadBtn" style="display: none;">
+                                <i class="fas fa-download me-2"></i>
+                                Descargar Reporte PDF
+                            </button>
+                        </div>
+                </div>
+               
+            </div>
+        </div>
+
+        <!-- Resultados AAP -->
+        <div class="detail-card aap-results" id="aapResults">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-car me-2"></i>
+                    Datos Oficiales del Vehículo - AAP
+                </h4>
+            </div>
+            <div class="p-3" id="aapResultsContent">
+                <!-- Los resultados se cargarán aquí -->
+            </div>
+        </div>
+
+        <!-- Resultados PIT -->
+        <div class="detail-card pit-results" id="pitResults">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Estado de Papeletas - PIT
+                </h4>
+            </div>
+            <div class="p-3" id="pitResultsContent">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2"></i>
+                    <p>Presiona "Consultar PIT" para verificar papeletas de tránsito</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados SAT -->
+        <!-- Resultados SAT -->
+        <div class="detail-card" id="satResults" style="background: white; border-radius: 15px; padding: 0; margin-top: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-ban me-2"></i>
+                    Órdenes de Captura - SAT
+                </h4>
+            </div>
+            <div class="p-3" id="satResultsContent">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2"></i>
+                    <p>Presiona "Consultar SAT" para verificar órdenes de captura</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados Autorización -->
+        <div class="detail-card" id="autorizacionResults" style="background: white; border-radius: 15px; padding: 0; margin-top: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-id-card me-2"></i>
+                    Autorización de Circulación - Puno
+                </h4>
+            </div>
+            <div class="p-3" id="autorizacionResultsContent">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2"></i>
+                    <p>Presiona "Autorización" para verificar permisos de circulación</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados SOAT -->
+        <div class="detail-card" id="soatResults" style="background: white; border-radius: 15px; padding: 0; margin-top: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <div class="card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    SOAT - Seguro Obligatorio
+                </h4>
+            </div>
+            <div class="p-3" id="soatResultsContent">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-2x mb-2"></i>
+                    <p>Presiona "SOAT" para verificar seguro obligatorio</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        const detectionId = parseInt('{{ detection.id }}');
+        
+        // Función para buscar información AAP
+        async function searchAAPInfo() {
+            const plateNumber = document.getElementById('plateSearch').value.trim().toUpperCase();
+            
+            if (!plateNumber) {
+                alert('Por favor ingresa una placa válida');
+                return;
+            }
+            
+            try {
+                // Mostrar loading SOLO en sección AAP (no afectar PIT)
+                document.getElementById('aapResultsContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-success mb-3"></div>
+                        <p><strong>Consultando AAP...</strong></p>
+                        <small class="text-muted">Obteniendo datos oficiales del vehículo</small>
+                    </div>
+                `;
+                
+                // Hacer request
+                const response = await fetch(`/detection/${detectionId}/search-aap/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'plate_number': plateNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Mostrar resultados AAP (mantener PIT intacto)
+                displayAAPResults(data);
+                
+            } catch (error) {
+                console.error('Error AAP:', error);
+                document.getElementById('aapResultsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta AAP</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Función para buscar información PIT
+        async function searchPITInfo() {
+            const plateNumber = document.getElementById('plateSearch').value.trim().toUpperCase();
+            
+            if (!plateNumber) {
+                alert('Por favor ingresa una placa válida');
+                return;
+            }
+            
+            try {
+                // Mostrar loading SOLO en sección PIT (no afectar AAP)
+                document.getElementById('pitResultsContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-warning mb-3"></div>
+                        <p><strong>Consultando PIT...</strong></p>
+                        <small class="text-muted">Verificando papeletas de tránsito (puede tardar 1-2 minutos)</small>
+                    </div>
+                `;
+                
+                // Hacer request
+                const response = await fetch(`/api/test-pit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'plate_number': plateNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Mostrar resultados PIT (mantener AAP intacto)
+                displayPITResults(data);
+                
+            } catch (error) {
+                console.error('Error PIT:', error);
+                document.getElementById('pitResultsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta PIT</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Función para mostrar resultados AAP
+        function displayAAPResults(data) {
+            const container = document.getElementById('aapResultsContent');
+            
+            if (data.success && data.data) {
+                let html = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Información encontrada</strong> - Tiempo de respuesta: ${data.response_time}s
+                    </div>
+                    
+                    <div class="row">
+                `;
+                
+                // Mostrar datos estructurados
+                const campos = {
+                    'placa_nueva': 'Placa Nueva',
+                    'placa_anterior': 'Placa Anterior',
+                    'estado': 'Estado',
+                    'marca': 'Marca',
+                    'modelo': 'Modelo',
+                    'propietario': 'Propietario',
+                    'tipo_uso': 'Tipo de Uso',
+                    'fecha_entrega': 'Fecha Entrega',
+                    'numero_serie': 'Número de Serie',
+                    'punto_entrega': 'Punto de Entrega'
+                };
+                
+                let col1 = '', col2 = '';
+                let contador = 0;
+                
+                for (const [key, label] of Object.entries(campos)) {
+                    if (data.data[key]) {
+                        const row = `
+                            <div class="data-row">
+                                <span class="data-label">${label}:</span>
+                                <span class="data-value">${data.data[key]}</span>
+                            </div>
+                        `;
+                        
+                        if (contador % 2 === 0) {
+                            col1 += row;
+                        } else {
+                            col2 += row;
+                        }
+                        contador++;
+                    }
+                }
+                
+                html += `
+                        <div class="col-md-6">${col1}</div>
+                        <div class="col-md-6">${col2}</div>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+                
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No se encontró información</strong><br>
+                        ${data.error || 'No hay datos disponibles para esta placa'}
+                    </div>
+                `;
+            }
+        }
+        
+        // Función para mostrar resultados PIT
+        function displayPITResults(data) {
+            const container = document.getElementById('pitResultsContent');
+            
+            if (data.success && data.data) {
+                const alertClass = data.data.tiene_papeletas ? 'alert-warning' : 'alert-success';
+                const icon = data.data.tiene_papeletas ? 'exclamation-triangle' : 'check-circle';
+                
+                container.innerHTML = `
+                    <div class="${alertClass}">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong>Consulta PIT completada</strong> - Tiempo: ${data.response_time}s
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6><strong>Estado de Papeletas:</strong></h6>
+                        <div class="p-3 bg-light rounded">
+                            ${data.data.estado_papeletas}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Tiene papeletas pendientes:</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="badge ${data.data.tiene_papeletas ? 'bg-warning' : 'bg-success'}">
+                                    ${data.data.tiene_papeletas ? 'SÍ' : 'NO'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta PIT</strong><br>
+                        ${data.error || 'No se pudo obtener información'}
+                    </div>
+                `;
+            }
+        }
+        
+        // Función para obtener cookies CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Función para buscar información SAT
+        async function searchSATInfo() {
+            const plateNumber = document.getElementById('plateSearch').value.trim().toUpperCase();
+            
+            if (!plateNumber) {
+                alert('Por favor ingresa una placa válida');
+                return;
+            }
+            
+            try {
+                // Mostrar loading SOLO en sección SAT
+                document.getElementById('satResultsContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-danger mb-3"></div>
+                        <p><strong>Consultando SAT...</strong></p>
+                        <small class="text-muted">Verificando órdenes de captura (puede tardar 1-2 minutos)</small>
+                    </div>
+                `;
+                
+                // Hacer request
+                const response = await fetch(`/api/test-sat/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'plate_number': plateNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Mostrar resultados SAT (mantener AAP y PIT intactos)
+                displaySATResults(data);
+                
+            } catch (error) {
+                console.error('Error SAT:', error);
+                document.getElementById('satResultsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta SAT</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Función para mostrar resultados SAT
+        function displaySATResults(data) {
+            const container = document.getElementById('satResultsContent');
+            
+            if (data.success && data.data) {
+                const alertClass = data.data.tiene_orden_captura ? 'alert-danger' : 'alert-success';
+                const icon = data.data.tiene_orden_captura ? 'exclamation-triangle' : 'check-circle';
+                
+                container.innerHTML = `
+                    <div class="${alertClass}">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong>Consulta SAT completada</strong> - Tiempo: ${data.response_time}s
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6><strong>Estado de Órdenes de Captura:</strong></h6>
+                        <div class="p-3 bg-light rounded">
+                            ${data.data.estado_captura}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Tiene orden de captura:</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="badge ${data.data.tiene_orden_captura ? 'bg-danger' : 'bg-success'}">
+                                    ${data.data.tiene_orden_captura ? 'SÍ' : 'NO'}
+                                </span>
+                            </div>
+                        </div>
+                        ${data.data.provincia ? `
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Provincia consultada:</strong>
+                            </div>
+                            <div class="col-md-6">
+                                ${data.data.provincia}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${data.data.fecha_actualizacion ? `
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Última actualización:</strong>
+                            </div>
+                            <div class="col-md-6">
+                                ${data.data.fecha_actualizacion}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta SAT</strong><br>
+                        ${data.error || 'No se pudo obtener información'}
+                    </div>
+                `;
+            }
+        }
+
+        // Función para buscar información de Autorización
+        async function searchAutorizacionInfo() {
+            const plateNumber = document.getElementById('plateSearch').value.trim().toUpperCase();
+            
+            if (!plateNumber) {
+                alert('Por favor ingresa una placa válida');
+                return;
+            }
+            
+            try {
+                // Mostrar loading SOLO en sección Autorización
+                document.getElementById('autorizacionResultsContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-info mb-3"></div>
+                        <p><strong>Consultando Autorización...</strong></p>
+                        <small class="text-muted">Verificando permisos de circulación</small>
+                    </div>
+                `;
+                
+                // Hacer request
+                const response = await fetch(`/api/test-autorizacion/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'plate_number': plateNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Mostrar resultados Autorización (mantener otras secciones intactas)
+                displayAutorizacionResults(data);
+                
+            } catch (error) {
+                console.error('Error Autorización:', error);
+                document.getElementById('autorizacionResultsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta de Autorización</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Función para mostrar resultados de Autorización
+        function displayAutorizacionResults(data) {
+            const container = document.getElementById('autorizacionResultsContent');
+            
+            if (data.success && data.data) {
+                if (data.data.tiene_autorizacion) {
+                    container.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Autorización encontrada</strong> - Tiempo: ${data.response_time}s
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h6><strong>Información de Autorización:</strong></h6>
+                            <div class="row">
+                                ${data.data.numero_tarjeta ? `
+                                <div class="col-md-6">
+                                    <div class="data-row">
+                                        <span class="data-label">Número de Tarjeta:</span>
+                                        <span class="data-value">${data.data.numero_tarjeta}</span>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${data.data.propietario ? `
+                                <div class="col-md-6">
+                                    <div class="data-row">
+                                        <span class="data-label">Propietario:</span>
+                                        <span class="data-value">${data.data.propietario}</span>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${data.data.empresa ? `
+                                <div class="col-md-6">
+                                    <div class="data-row">
+                                        <span class="data-label">Empresa:</span>
+                                        <span class="data-value">${data.data.empresa}</span>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${data.data.direccion ? `
+                                <div class="col-md-6">
+                                    <div class="data-row">
+                                        <span class="data-label">Dirección:</span>
+                                        <span class="data-value">${data.data.direccion}</span>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="mt-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Estado:</strong> Vehículo autorizado para circulación de servicios de transporte
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Sin autorización</strong> - Tiempo: ${data.response_time}s
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="p-3 bg-light rounded">
+                                ${data.data.mensaje || 'No se encontró autorización de circulación para esta placa'}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta de Autorización</strong><br>
+                        ${data.error || 'No se pudo obtener información'}
+                    </div>
+                `;
+            }
+        }
+
+        // Función para buscar información SOAT
+        async function searchSOATInfo() {
+            const plateNumber = document.getElementById('plateSearch').value.trim().toUpperCase();
+            
+            if (!plateNumber) {
+                alert('Por favor ingresa una placa válida');
+                return;
+            }
+            
+            try {
+                // Mostrar loading SOLO en sección SOAT
+                document.getElementById('soatResultsContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary mb-3"></div>
+                        <p><strong>Consultando SOAT...</strong></p>
+                        <small class="text-muted">Verificando seguro obligatorio (puede tardar 1-2 minutos)</small>
+                    </div>
+                `;
+                
+                // Hacer request
+                const response = await fetch(`/api/test-soat/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'plate_number': plateNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Mostrar resultados SOAT (mantener otras secciones intactas)
+                displaySOATResults(data);
+                
+            } catch (error) {
+                console.error('Error SOAT:', error);
+                document.getElementById('soatResultsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error en consulta SOAT</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Función para mostrar resultados SOAT
+        function displaySOATResults(data) {
+        const container = document.getElementById('soatResultsContent');
+        
+        if (data.success && data.data) {
+            const alertClass = data.data.tiene_soat ? 'alert-success' : 'alert-warning';
+            const icon = data.data.tiene_soat ? 'check-circle' : 'exclamation-triangle';
+            
+            let html = `
+                <div class="${alertClass}">
+                    <i class="fas fa-${icon} me-2"></i>
+                    <strong>Consulta SOAT completada</strong> - Tiempo: ${data.response_time}s
+                </div>
+            `;
+            
+            // Resultado de consulta
+            if (data.data.resultado_consulta) {
+                html += `
+                    <div class="mt-3">
+                        <h6><strong>Resultado de Consulta:</strong></h6>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            ${data.data.resultado_consulta}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Información básica
+            if (data.data.fecha_consulta || data.data.informacion_actualizada) {
+                html += `
+                    <div class="mt-3">
+                        <div class="row">
+                            ${data.data.fecha_consulta ? `
+                            <div class="col-md-6">
+                                <div class="data-row">
+                                    <span class="data-label">Fecha de consulta:</span>
+                                    <span class="data-value">${data.data.fecha_consulta}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                            ${data.data.informacion_actualizada ? `
+                            <div class="col-md-6">
+                                <div class="data-row">
+                                    <span class="data-label">Información actualizada:</span>
+                                    <span class="data-value">${data.data.informacion_actualizada}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                            ${data.data.numero_accidentes !== null ? `
+                            <div class="col-md-6">
+                                <div class="data-row">
+                                    <span class="data-label">Accidentes registrados:</span>
+                                    <span class="data-value badge ${data.data.numero_accidentes === 0 ? 'bg-success' : 'bg-warning'}">${data.data.numero_accidentes}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Tabla de pólizas SOAT - CON ESTRUCTURA CORRECTA
+            if (data.data.polizas && data.data.polizas.length > 0) {
+                html += `
+                    <div class="mt-3">
+                        <h6><strong>Listado de pólizas SOAT contratadas:</strong></h6>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Compañía aseguradora</th>
+                                        <th>Clase del vehículo</th>
+                                        <th>Uso de vehículo</th>
+                                        <th>N.° de accidentes</th>
+                                        <th>N.° de póliza</th>
+                                        <th>N.° de certificado</th>
+                                        <th>Inicio de vigencia</th>
+                                        <th>Fin de vigencia</th>
+                                        <th>Comentario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                data.data.polizas.forEach(poliza => {
+                    html += `
+                        <tr>
+                            <td><strong>${poliza.compania || '-'}</strong></td>
+                            <td>${poliza.clase_vehiculo || '-'}</td>
+                            <td>${poliza.uso || '-'}</td>
+                            <td><span class="badge ${poliza.accidentes === '0' ? 'bg-success' : 'bg-warning'}">${poliza.accidentes || '-'}</span></td>
+                            <td><code>${poliza.numero_poliza || '-'}</code></td>
+                            <td>${poliza.certificado || '-'}</td>
+                            <td>${poliza.inicio_vigencia || '-'}</td>
+                            <td>${poliza.fin_vigencia || '-'}</td>
+                            <td><small>${poliza.comentario || '-'}</small></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Total de pólizas encontradas: ${data.data.polizas.length}
+                            </small>
+                        </div>
+                    </div>
+                `;
+            } else if (data.data.listado_polizas_texto) {
+                // Fallback: mostrar texto si no se pudo parsear la tabla
+                html += `
+                    <div class="mt-3">
+                        <h6><strong>Listado de Pólizas SOAT:</strong></h6>
+                        <div class="p-3" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; font-family: monospace; font-size: 0.85rem; overflow-x: auto;">
+                            <pre style="margin: 0; white-space: pre-wrap;">${data.data.listado_polizas_texto}</pre>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Error en consulta SOAT</strong><br>
+                    ${data.error || 'No se pudo obtener información'}
+                </div>
+            `;
+        }
+    }
+
+        ////////////////////////////////////////////////////////////////77
+
+        // Función para descargar PDF
+        async function downloadPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // Configuración
+                const plateNumber = document.getElementById('plateSearch').value.trim().toUpperCase();
+                const currentDate = new Date().toLocaleDateString('es-ES');
+                
+                // Encabezado
+                pdf.setFontSize(18);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('REPORTE DE CONSULTA VEHICULAR', 105, 20, { align: 'center' });
+                
+                pdf.setFontSize(12);
+                pdf.setFont(undefined, 'normal');
+                pdf.text(`Placa: ${plateNumber}`, 20, 35);
+                pdf.text(`Fecha: ${currentDate}`, 20, 42);
+                
+                let yPosition = 55;
+                
+                // Función auxiliar para agregar sección
+                function addSection(title, contentElement, yPos) {
+                    if (!contentElement || contentElement.style.display === 'none') {
+                        return yPos;
+                    }
+                    
+                    // Título de sección
+                    pdf.setFontSize(14);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(title, 20, yPos);
+                    yPos += 10;
+                    
+                    // Contenido (simplificado)
+                    pdf.setFontSize(10);
+                    pdf.setFont(undefined, 'normal');
+                    
+                    const textContent = contentElement.textContent || '';
+                    const lines = pdf.splitTextToSize(textContent.substring(0, 500), 170);
+                    
+                    lines.forEach(line => {
+                        if (yPos > 270) { // Nueva página
+                            pdf.addPage();
+                            yPos = 20;
+                        }
+                        pdf.text(line, 20, yPos);
+                        yPos += 5;
+                    });
+                    
+                    return yPos + 10;
+                }
+                
+                // Agregar secciones si tienen resultados
+                yPosition = addSection('1. DATOS DEL VEHÍCULO (AAP)', 
+                    document.getElementById('aapResultsContent'), yPosition);
+                
+                yPosition = addSection('2. PAPELETAS DE TRÁNSITO (PIT)', 
+                    document.getElementById('pitResultsContent'), yPosition);
+                
+                yPosition = addSection('3. ÓRDENES DE CAPTURA (SAT)', 
+                    document.getElementById('satResultsContent'), yPosition);
+                
+                yPosition = addSection('4. AUTORIZACIÓN DE CIRCULACIÓN', 
+                    document.getElementById('autorizacionResultsContent'), yPosition);
+                
+                yPosition = addSection('5. SEGURO OBLIGATORIO (SOAT)', 
+                    document.getElementById('soatResultsContent'), yPosition);
+                
+                // Pie de página
+                const pageCount = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(8);
+                    pdf.text(`Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+                    pdf.text('Generado por Sistema de Control Vehicular', 105, 295, { align: 'center' });
+                }
+                
+                // Descargar
+                pdf.save(`Reporte_Vehicular_${plateNumber}_${new Date().getTime()}.pdf`);
+                
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                alert('Error generando el PDF. Inténtalo de nuevo.');
+            }
+        }
+
+        // Mostrar botón cuando hay resultados
+        
+        // Permitir buscar con Enter
+        document.getElementById('plateSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                // Por defecto, ejecutar AAP si se presiona Enter
+                searchAAPInfo();
+            }
+        });
+    </script>
+    
+</body>
+</html>
