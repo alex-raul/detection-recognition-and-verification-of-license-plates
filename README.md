@@ -31,8 +31,8 @@ El objetivo es proporcionar una solución que no solo detecte matrículas en im�
 📸 **![Mapeo de la zona de la placa](capturas/data.png)**
 
 # control principal (tiempo real, video grabado o imagen).
-📸 **![Control principal](capturas/segundopanelpng)**
+📸 **![Control principal](capturas/segundopanel.png)**
 
 # Resultados del webScraping
 📸 **![Resaultado 1](capturas/resultado1.png)**
-📸 **![Resultado 2](capturas/clasificador.png)**
+📸 **![Resultado 2](capturas/resultado2.png)**
